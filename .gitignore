@@ -1,0 +1,14 @@
+# Remote desktop connection files contain the server's public IP
+*.rdp
+
+# Never commit credentials or Terraform state
+*.pfx
+*.pem
+*.key
+.env
+*.tfstate
+*.tfstate.*
+.terraform/
+terraform.tfvars
+
+.DS_Store
