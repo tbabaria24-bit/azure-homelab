@@ -20,11 +20,16 @@
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [string]$CsvPath = (Join-Path $PSScriptRoot "lab-users.csv"),
-    [string]$LogPath = (Join-Path $PSScriptRoot "New-LabUsers.log")
+    [string]$CsvPath,
+    [string]$LogPath
 )
 
 $ErrorActionPreference = "Stop"
+
+# Windows PowerShell 5.1 leaves $PSScriptRoot empty inside param defaults, so resolve here.
+$here = if ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).Path }
+if (-not $CsvPath) { $CsvPath = Join-Path $here "lab-users.csv" }
+if (-not $LogPath) { $LogPath = Join-Path $here "New-LabUsers.log" }
 Import-Module ActiveDirectory
 
 $domain = Get-ADDomain
