@@ -28,3 +28,17 @@ Real problems I ran into while building the lab, and how I solved them.
 - **Symptom:** after editing the RDP inbound rule, the network settings page still showed `Source: Any` with a warning icon.
 - **Fix:** reopened the rule, set **Source → My IP address**, saved, and waited for the "Updated security rule" notification before leaving the page.
 - **Lesson:** verify security changes from the summary view, not just the edit panel.
+
+## 2026-11-10 · Phase 2
+
+### Couldn't RDP right after starting the VM
+
+- **Symptom:** RDP failed even though DC01 showed **Running** and my IP matched the NSG rule. The portal warned "virtual machine agent status is not ready".
+- **Investigation:** **Boot diagnostics → Screenshot** showed Windows sitting at the lock screen, so the OS was up. It had simply still been booting when I first tried.
+- **Lesson:** "Running" in the portal means the VM is powered on, not that Windows is ready. Boot diagnostics shows what the console looks like without needing RDP.
+
+### Script failed with "Cannot bind argument to parameter 'Path' because it is an empty string"
+
+- **Cause:** `New-LabUsers.ps1` used `$PSScriptRoot` in its `param()` default values. Windows PowerShell 5.1 (the version built into Windows Server 2022) leaves it empty there, while PowerShell 7 fills it in.
+- **Fix:** passed `-CsvPath` and `-LogPath` explicitly, then changed the script to resolve its default paths after the `param()` block ([commit](https://github.com/tbabaria24-bit/azure-homelab/commits/main/scripts/phase2/New-LabUsers.ps1)).
+- **Lesson:** test admin scripts on the PowerShell version the servers actually run.

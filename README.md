@@ -5,7 +5,7 @@ A small company network built in Microsoft Azure: a Windows Server domain contro
 | Phase | What gets built | Status |
 | --- | --- | --- |
 | 1 | Network, cost controls, domain controller (AD DS + DNS) | ✅ Done |
-| 2 | Users and OUs, Windows workstation joined to the domain, Group Policy, help desk scenarios, Ubuntu server | 🔜 Next |
+| 2 | Users and OUs, Windows workstation joined to the domain, Group Policy, help desk scenarios, Ubuntu server | 🚧 In progress |
 | 3 | Wazuh SIEM on every VM, simulated attacks, incident reports | Planned |
 | 4 | Whole lab as Terraform, automation scripts | Planned |
 
@@ -48,9 +48,19 @@ flowchart TB
 📘 Step-by-step guide: [docs/phase1-domain-controller.md](docs/phase1-domain-controller.md)
 🛠️ What broke and how I fixed it: [docs/build-log.md](docs/build-log.md)
 
+## Phase 2: Users, workstation and Group Policy (in progress)
+
+- ✅ Scripted the Active Directory structure with [`New-LabUsers.ps1`](scripts/phase2/New-LabUsers.ps1): a `Lab` OU tree (Users by department, Computers, Groups, Disabled Users), a security group per department plus `GG-Helpdesk`, and 20 users created from [a CSV](scripts/phase2/lab-users.csv). The script has a `-WhatIf` dry run, writes a log, skips anything that already exists, and forces a password change at first sign-in
+- ⬜ Windows workstation joined to `homelab.local`
+- ⬜ Group Policy: password policy, mapped drive, desktop settings
+- ⬜ Help desk scenarios: password reset, account unlock, broken domain trust
+- ⬜ Ubuntu server managed over SSH
+
+![Active Directory Users and Computers showing the Lab OU structure](docs/screenshots/phase2-aduc-ou-structure.png)
+
 ## Skills practiced
 
-- **Windows Server & Active Directory:** AD DS forest creation, DNS, domain controller networking
+- **Windows Server & Active Directory:** AD DS forest creation, DNS, domain controller networking, OU design, security groups, bulk user provisioning with PowerShell
 - **Azure:** virtual networks and subnets, network security groups, VM sizing, static IPs, Azure Policy, cost management
 - **Security basics:** least-exposure RDP, budget guardrails, keeping secrets out of the repo
 - **Troubleshooting:** reading Azure activity logs and policy assignments to find why deployments fail
