@@ -42,3 +42,16 @@ Real problems I ran into while building the lab, and how I solved them.
 - **Cause:** `New-LabUsers.ps1` used `$PSScriptRoot` in its `param()` default values. Windows PowerShell 5.1 (the version built into Windows Server 2022) leaves it empty there, while PowerShell 7 fills it in.
 - **Fix:** passed `-CsvPath` and `-LogPath` explicitly, then changed the script to resolve its default paths after the `param()` block ([commit](https://github.com/tbabaria24-bit/azure-homelab/commits/main/scripts/phase2/New-LabUsers.ps1)).
 - **Lesson:** test admin scripts on the PowerShell version the servers actually run.
+
+## 2026-11-17 · Phase 2
+
+### Domain users couldn't sign in over Remote Desktop with a "must change password" flag
+
+- **Cause:** Remote Desktop uses Network Level Authentication (NLA), which authenticates before the session starts. An account flagged to change its password at next logon can't complete that step.
+- **Fix:** as the help desk, reset the password with `Set-ADAccountPassword` and cleared the flag with `Set-ADUser -ChangePasswordAtLogon $false`. Domain users also needed to be added to WS01's local **Remote Desktop Users** group.
+
+### Lockout event 4740 showed a blank "Caller Computer Name"
+
+- **Observation:** the lockout was logged on DC01, but the field that normally names the source computer was empty.
+- **Why:** the failed attempts came through RDP with NLA, which doesn't pass the client's workstation name to the domain controller.
+- **Next step in a real investigation:** check failed-logon events (4625) on WS01 for the source network address. I'll collect these centrally once the SIEM is running in Phase 3.
