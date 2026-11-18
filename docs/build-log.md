@@ -55,3 +55,23 @@ Real problems I ran into while building the lab, and how I solved them.
 - **Observation:** the lockout was logged on DC01, but the field that normally names the source computer was empty.
 - **Why:** the failed attempts came through RDP with NLA, which doesn't pass the client's workstation name to the domain controller.
 - **Next step in a real investigation:** check failed-logon events (4625) on WS01 for the source network address. I'll collect these centrally once the SIEM is running in Phase 3.
+
+## 2026-11-18 · Phase 3
+
+### VM wizard silently picked a new network and expensive disks
+
+- **Symptom:** the Review tab for LNX01 showed `Virtual network: (new) vnet-northcentralus-1` and `OS disk type: StandardSSD_ZRS`.
+- **Fix:** before creating, switched to `vnet-homelab` / `snet-servers` and Standard SSD **LRS**. Otherwise LNX01 couldn't have reached DC01 or WS01.
+- **Lesson:** always read the Review tab line by line; look for `(new)`.
+
+### Wazuh install took about 20 minutes
+
+- The installer expects 4 vCPUs; on 2 vCPUs the indexer start-up step was slow. Keeping the SSH session alive (Mac awake) mattered, since a dropped session can break the install.
+
+### "Backdoor" account creation failed the first time
+
+- The attacker's password didn't meet the domain policy (12+ characters, complex) set in Phase 2, so the account was never created. A second attempt with a compliant password succeeded and Wazuh raised **Domain Admins Group Changed (level 12)**.
+
+### False positive: "possible pass-the-hash"
+
+- Wazuh rule 92652 flagged my own NTLM RDP sign-in. I verified the source IP and account were mine, then documented a tuning approach in the [incident report](incident-report-2026-11-18.md).

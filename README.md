@@ -6,20 +6,19 @@ A small company network built in Microsoft Azure: a Windows Server domain contro
 | --- | --- | --- |
 | 1 | Network, cost controls, domain controller (AD DS + DNS) | ✅ Done |
 | 2 | Users and OUs, Windows 11 workstation joined to the domain, Group Policy, help desk scenarios | ✅ Done |
-| 3 | Ubuntu server, Wazuh SIEM on every VM, simulated attacks, incident reports | 🔜 Next |
+| 3 | Ubuntu server, Wazuh SIEM collecting logs from every VM, simulated attacks, incident report | ✅ Done |
 | 4 | Whole lab as Terraform, automation scripts | Planned |
 
 ## Architecture
 
 ```mermaid
 flowchart TB
-    me[My Mac<br/>Windows App / RDP] -- "RDP 3389<br/>allowed from my IP only" --> pip[(Public IPs<br/>one per VM)]
+    me[My Mac<br/>RDP · SSH · browser] -- "RDP 3389<br/>allowed from my IP only" --> pip[(Public IPs<br/>one per VM)]
     subgraph azure["Azure for Students · North Central US · rg-homelab"]
         subgraph vnet["vnet-homelab 10.10.0.0/16 · DNS → 10.10.1.4"]
             subgraph servers["snet-servers 10.10.1.0/24"]
                 dc01["DC01<br/>Windows Server 2022<br/>AD DS + DNS · 10.10.1.4"]
-                lnx["Ubuntu server<br/>(Phase 3)"]
-                siem["Wazuh SIEM<br/>(Phase 3)"]
+                lnx["LNX01 · Ubuntu 24.04<br/>Wazuh SIEM · 10.10.1.5"]
             end
             subgraph ws["snet-workstations 10.10.2.0/24"]
                 ws01["WS01<br/>Windows 11<br/>domain-joined"]
@@ -30,6 +29,9 @@ flowchart TB
     pip --> ws01
     ws01 -. "joined to homelab.local<br/>DNS · Kerberos · Group Policy" .-> dc01
     ws01 -. "S: drive" .-> dc01
+    dc01 == "Wazuh agent<br/>security logs" ==> lnx
+    ws01 == "Wazuh agent<br/>security logs" ==> lnx
+    me -- "SSH 22 · HTTPS 443<br/>my IP only" --> lnx
 ```
 
 ## Phase 1: Domain controller
@@ -77,12 +79,31 @@ flowchart TB
 
 📘 Step-by-step guide: [docs/phase2-users-workstation-gpo.md](docs/phase2-users-workstation-gpo.md)
 
+## Phase 3: Linux server, Wazuh SIEM and attack simulation
+
+**Goal:** see the lab the way a SOC analyst does: collect security logs centrally, attack the environment, and catch it.
+
+- Built **LNX01** (Ubuntu 24.04, 8 GB) with **SSH key-only login**; SSH and the dashboard are open to my IP only
+- Installed the **Wazuh** SIEM (server, indexer and dashboard) and enrolled **DC01 and WS01 as agents** over the private network
+- Ran four attacks: **RDP brute force**, **SSH username probing**, a **backdoor Domain Admin account**, and **clearing the Security log**
+- Hunted in Wazuh with queries like `rule.mitre.id:* and rule.level > 3`, narrowing **1,600+ events to the alerts that mattered**, all mapped to MITRE ATT&CK
+- Investigated a **false positive** ("possible pass-the-hash" on my own NTLM RDP login) and documented how to tune it
+- Wrote it up as an **[incident report](docs/incident-report-2026-11-18.md)**
+
+| Threat Hunting overview | Domain Admins change caught (level 12) |
+| --- | --- |
+| ![Wazuh overview](docs/screenshots/phase3-wazuh-threat-hunting-overview.png) | ![DC01 alerts](docs/screenshots/phase3-wazuh-dc01-backdoor-admin.png) |
+
+📘 Step-by-step guide: [docs/phase3-wazuh-siem.md](docs/phase3-wazuh-siem.md)
+
 ## Skills practiced
 
 - **Windows Server & Active Directory:** AD DS forest creation, DNS, OU design, security groups, bulk user provisioning with PowerShell, domain join, Group Policy (drive maps), domain password and lockout policy, SMB shares and NTFS permissions
 - **Help desk:** password resets, account lockout investigation (event 4740) and unlock, offboarding
 - **Azure:** virtual networks and subnets, network security groups, VM sizing, static IPs, Azure Policy, cost management
-- **Security basics:** least-exposure RDP, budget guardrails, keeping secrets out of the repo
+- **Security operations:** SIEM deployment (Wazuh), agent enrollment, log analysis, threat hunting queries, MITRE ATT&CK mapping, false-positive triage, incident reporting
+- **Linux:** Ubuntu server administration over SSH with key-based authentication
+- **Security basics:** least-exposure RDP and SSH, budget guardrails, keeping secrets out of the repo
 - **Troubleshooting:** reading Azure activity logs and policy assignments to find why deployments fail
 
 ## Cost
@@ -95,6 +116,8 @@ Everything runs on the free **Azure for Students** $100 credit. Each VM costs ab
 docs/
   phase1-domain-controller.md   build guide for Phase 1
   phase2-users-workstation-gpo.md  build guide for Phase 2
+  phase3-wazuh-siem.md          build guide for Phase 3
+  incident-report-2026-11-18.md simulated attack, detections and response
   build-log.md                  problems hit and how they were solved
   screenshots/                  proof of each milestone
 scripts/
