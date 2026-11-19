@@ -7,7 +7,7 @@ A small company network built in Microsoft Azure: a Windows Server domain contro
 | 1 | Network, cost controls, domain controller (AD DS + DNS) | ✅ Done |
 | 2 | Users and OUs, Windows 11 workstation joined to the domain, Group Policy, help desk scenarios | ✅ Done |
 | 3 | Ubuntu server, Wazuh SIEM collecting logs from every VM, simulated attacks, incident report | ✅ Done |
-| 4 | Whole lab as Terraform, automation scripts | Planned |
+| 4 | Whole lab as Terraform (Infrastructure as Code) with CI validation | ✅ Done |
 
 ## Architecture
 
@@ -96,11 +96,33 @@ flowchart TB
 
 📘 Step-by-step guide: [docs/phase3-wazuh-siem.md](docs/phase3-wazuh-siem.md)
 
+## Phase 4: The whole lab as code (Terraform)
+
+**Goal:** make the lab reproducible: everything built by hand in Phases 1–3, described in code that can rebuild it with one command.
+
+[`terraform/`](terraform) defines **30 resources**:
+
+| File | What it builds |
+| --- | --- |
+| [`network.tf`](terraform/network.tf) | Resource group, `vnet-homelab` and both subnets, a network security group per VM with RDP / SSH / HTTPS **open only to one IP**, static public IPs, NICs with fixed private IPs |
+| [`compute.tf`](terraform/compute.tf) | **DC01** promotes itself to a domain controller through a Custom Script Extension; **WS01** (Windows 11) waits for the domain and **joins it automatically**; **LNX01** installs **Wazuh on first boot** with cloud-init; auto-shutdown on every VM |
+| [`budget.tf`](terraform/budget.tf) | Monthly budget with 50% and 90% email alerts |
+| [`variables.tf`](terraform/variables.tf) | Region, sizes, allowed IP, optional VMs. Passwords are `sensitive` and passed as environment variables, never stored |
+
+- **Secrets stay out of the repo:** passwords come from `TF_VAR_` environment variables, the DSRM password goes through the extension's encrypted `protected_settings`, and `terraform.tfvars` and state files are git-ignored
+- **CI:** a [GitHub Actions workflow](.github/workflows/terraform.yml) runs `terraform fmt -check` and `terraform validate` on every change
+- **Verified against Azure:** ran `terraform plan` from Azure Cloud Shell against the real subscription: **30 to add, 0 to change, 0 to destroy**. A full `apply` wasn't possible because the student subscription's **6-vCPU regional quota** was already used by the hand-built lab (stopped VMs still count), so the plan is the proof
+
+![terraform plan output](docs/screenshots/phase4-terraform-plan.png)
+
+📘 How to run it: [docs/phase4-terraform.md](docs/phase4-terraform.md)
+
 ## Skills practiced
 
 - **Windows Server & Active Directory:** AD DS forest creation, DNS, OU design, security groups, bulk user provisioning with PowerShell, domain join, Group Policy (drive maps), domain password and lockout policy, SMB shares and NTFS permissions
 - **Help desk:** password resets, account lockout investigation (event 4740) and unlock, offboarding
-- **Azure:** virtual networks and subnets, network security groups, VM sizing, static IPs, Azure Policy, cost management
+- **Azure:** virtual networks and subnets, network security groups, VM sizing, static IPs, VM extensions, cloud-init, Azure Policy, quotas, cost management
+- **Infrastructure as Code:** Terraform (azurerm provider), variables and outputs, `for_each` and optional resources, secret handling, CI validation with GitHub Actions
 - **Security operations:** SIEM deployment (Wazuh), agent enrollment, log analysis, threat hunting queries, MITRE ATT&CK mapping, false-positive triage, incident reporting
 - **Linux:** Ubuntu server administration over SSH with key-based authentication
 - **Security basics:** least-exposure RDP and SSH, budget guardrails, keeping secrets out of the repo
@@ -118,6 +140,8 @@ docs/
   phase2-users-workstation-gpo.md  build guide for Phase 2
   phase3-wazuh-siem.md          build guide for Phase 3
   incident-report-2026-11-18.md simulated attack, detections and response
+  phase4-terraform.md           how to plan / apply / destroy the lab with Terraform
+terraform/                      the whole lab as code (30 resources)
   build-log.md                  problems hit and how they were solved
   screenshots/                  proof of each milestone
 scripts/

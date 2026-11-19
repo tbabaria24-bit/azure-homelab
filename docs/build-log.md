@@ -75,3 +75,20 @@ Real problems I ran into while building the lab, and how I solved them.
 ### False positive: "possible pass-the-hash"
 
 - Wazuh rule 92652 flagged my own NTLM RDP sign-in. I verified the source IP and account were mine, then documented a tuning approach in the [incident report](incident-report-2026-11-18.md).
+
+## 2026-11-19 · Phase 4
+
+### Homebrew refused to install on macOS 14
+
+- **Symptom:** Homebrew warned that macOS 14 is a Tier 3 (unsupported) platform with no prebuilt packages, then failed on a permissions error.
+- **Fix:** skipped local tools entirely and used **Azure Cloud Shell**, which already has Terraform and the Azure CLI and is signed in. Chose the ephemeral "no storage account" option.
+- **Gotcha:** Cloud Shell defaulted to the university's *other* subscription. `az account set --subscription "Azure for Students"` fixed it. Always check `az account show` first.
+
+### No room for a test build: regional vCPU quota
+
+- `az vm list-usage --location northcentralus` showed **Total Regional vCPUs 6 / 6**. Deallocated VMs still count against quota, so the hand-built DC01, WS01 and LNX01 used all of it.
+- **Decision:** validate with `terraform plan` (30 resources, no errors) instead of deleting the working lab. To apply for real, request a quota increase or destroy the hand-built lab first.
+
+### Public IP changed on campus Wi-Fi
+
+- USF's network gave me 131.247.226.39 today instead of .37. The NSG rules that allow "my IP" have to be updated whenever this happens, which is also why `allowed_ip` is a Terraform variable.
