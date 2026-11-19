@@ -1,0 +1,10 @@
+# Runs once on DC01 through the Custom Script Extension.
+# Installs AD DS and creates a new forest; the server restarts a minute later.
+$ErrorActionPreference = 'Stop'
+Install-WindowsFeature AD-Domain-Services -IncludeManagementTools | Out-Null
+$dsrm = ConvertTo-SecureString '${dsrm_password}' -AsPlainText -Force
+Install-ADDSForest -DomainName '${domain_name}' -DomainNetbiosName '${netbios_name}' -InstallDns `
+    -SafeModeAdministratorPassword $dsrm -NoRebootOnCompletion -Force | Out-Null
+# Reboot after the extension reports success, so Azure doesn't mark it as failed.
+shutdown.exe /r /t 60 /c "Domain controller promotion complete"
+exit 0

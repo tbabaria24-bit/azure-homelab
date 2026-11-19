@@ -1,0 +1,17 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars is in .gitignore — never commit it.
+
+subscription_id = "00000000-0000-0000-0000-000000000000" # az account show --query id -o tsv
+allowed_ip      = "203.0.113.10"                         # curl -s https://api.ipify.org
+alert_email     = "you@example.com"
+
+# Passwords: 12+ characters, upper and lower case, a number and a symbol.
+# Better: leave these out and set them as environment variables instead:
+#   export TF_VAR_admin_password='...'
+#   export TF_VAR_dsrm_password='...'
+# admin_password = ""
+# dsrm_password  = ""
+
+# Optional overrides
+# resource_group_name = "rg-homelab-tf"
+# deploy_ws01         = true
+# deploy_lnx01        = true

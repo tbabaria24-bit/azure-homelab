@@ -1,0 +1,9 @@
+#cloud-config
+# Runs on LNX01's first boot: updates Ubuntu and installs the Wazuh all-in-one
+# (server, indexer, dashboard). Takes about 20 minutes on 2 vCPUs.
+# Progress:  sudo tail -f /var/log/wazuh-install.log
+# Password:  sudo tar -O -xvf /root/wazuh-install-files.tar wazuh-install-files/wazuh-passwords.txt
+package_update: true
+package_upgrade: true
+runcmd:
+  - [bash, -c, "cd /root && curl -sO https://packages.wazuh.com/${wazuh_version}/wazuh-install.sh && bash ./wazuh-install.sh -a > /var/log/wazuh-install.log 2>&1"]
